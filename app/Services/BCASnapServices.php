@@ -83,8 +83,33 @@ class BCASnapServices implements BCASnapServicesInterfaces
 
         $headers = array_merge($prepareHeader, $additionalHeader);
 
-        return $this->postApi($method, $fullUrl, $headers, $body);
+        $result = $this->postApi($method, $fullUrl, $headers, $body);
+        $balance = $result['balance'];
+        $details = $result['detailData'];
 
+        $response = [
+            'startDate' => date('Y-m-d H:i:s', strtotime($balance[0]['startingBalance']['dateTime'])),
+            'endDate' => date('Y-m-d H:i:s', strtotime($balance[0]['endingBalance']['dateTime'])),
+            'startingBalance' => $balance[0]['startingBalance']['currency'].' '.$balance[0]['startingBalance']['value'],
+            'endingBalance' => $balance[0]['endingBalance']['currency'].' '.$balance[0]['endingBalance']['value'],
+        ];
+
+        $transactionDetails = [];
+
+        foreach ($details as $data) {
+            $remark = preg_replace('/\s+/', ' ', $data['remark']);
+
+            $transactionDetails[] = [
+                'transactionDate' => date('Y-m-d H:i:s', strtotime($data['transactionDate'])),
+                'transactionAmount' => $data['amount']['currency'].' '.$data['amount']['value'],
+                'type' => $data['type'],
+                'remark' => $remark
+            ];
+        }
+
+        $response['data'] = $transactionDetails;
+
+        return response()->json($response);
     }
 
     public function sendTransferToBCA(Request $request)
