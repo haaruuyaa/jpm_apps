@@ -61,15 +61,18 @@ class BCASnapServices implements BCASnapServicesInterfaces
         $fullUrl = $this->bankConfig->url.':'.$this->bankConfig->port.$uri;
         $token = $this->getCredentials($this->bankConfig->client,$this->bankConfig->port);
         $transactionId = 'STMT'.date('YmdHis').random_int(1000,9999);
-
-        $startDate = new \DateTime($request->query('StartDate'));
-        $endDate = new \DateTime($request->query('EndDate'));
+        $startDate = $request->has('StartDate') ? $request->input('StartDate') : date('Y-m-d');
+        $endDate = $request->has('EndDate') ? $request->input('EndDate') : date('Y-m-d');
+        $accountNumber = $request->has('AccountNumber') ? $request->input('AccountNumber') : $request->query('AccountNumber');
+        $startDate = new \DateTime($startDate);
+        $endDate = new \DateTime($endDate);
         $startDateConverted = $startDate->format(DATE_ATOM);
         $endDateConverted = $endDate->format(DATE_ATOM);
 
+
         $body = [
             'partnerReferenceNo' => $transactionId,
-            'accountNo' => $request->query('AccountNumber'),
+            'accountNo' => $accountNumber,
             'fromDateTime' => $startDateConverted,
             'toDateTime' => $endDateConverted
         ];

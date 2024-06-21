@@ -31,7 +31,25 @@ class BCASnapController extends Controller
 
     public function transferToBca(Request $request)
     {
-        return $this->services->sendTransferToBCA($request);
+        // $resultTransfer['beneficiaryAccountNo']
+        $resultTransfer = $this->services->sendTransferToBCA($request);
+        $request->merge(['StartDate' => date('Y-m-d'), 'EndDate' => date('Y-m-d'), 'AccountNumber' => env('BCA_SOURCE_ACC_NO')]);
+        $responseStatement = $this->services->getBankStatement($request);
+        $result = json_decode($responseStatement->getContent(), true);
+        $berita1 = $request->input('Berita1');
+        $berita2 = $request->input('Berita2');
+
+        $berita = $berita1 .' '. $berita2;
+        \Log::info('TF : '.json_encode($resultTransfer));
+
+        foreach ($result['data'] as $data) {
+            if (isset($data['remark']) && stripos($data['remark'], $berita) !== false) {
+                $resultTransfer['type'] = $data['type'];
+                $resultTransfer['remark'] = $data['remark'];
+            }
+        }
+
+        return response()->json($resultTransfer);
     }
 
     public function transferInquiryBCA(Request $request)
