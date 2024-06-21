@@ -46,6 +46,8 @@ class BCASnapController extends Controller
             if (isset($data['remark']) && stripos($data['remark'], $berita) !== false) {
                 $resultTransfer['type'] = $data['type'];
                 $resultTransfer['remark'] = $data['remark'];
+                $resultTransfer['transactionAmount'] = $data['transactionAmount'];
+                unset($resultTransfer['amount']);
             }
         }
 
