@@ -172,13 +172,20 @@ class BCASnapServices implements BCASnapServicesInterfaces
             'remark_2' => $remark2
         ];
 
-        $this->bca_transaction->insert($insertData);
+        $checkTrx = $this->bca_transaction->findByTrxId($transactionId);
 
-        $results = $this->postApi($method, $fullUrl, $headers, $body);
+        if (empty($checkTrx)) {
+            $this->bca_transaction->insert($insertData);
 
-        $this->bca_transaction->update($results);
+            $results = $this->postApi($method, $fullUrl, $headers, $body);
 
-        return $results;
+            $this->bca_transaction->update($results);
+
+            return $results;
+        }
+
+        return ['status' => 'error' ,'message' => "Transaksi ReferenceID {$transactionId} sudah pernah di buat sebelumnya. Silahkan ubah ReferenceId"];
+
 
     }
 

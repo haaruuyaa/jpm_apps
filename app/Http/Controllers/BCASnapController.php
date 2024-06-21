@@ -33,7 +33,12 @@ class BCASnapController extends Controller
     {
         // $resultTransfer['beneficiaryAccountNo']
         $resultTransfer = $this->services->sendTransferToBCA($request);
-        $request->merge(['StartDate' => date('Y-m-d'), 'EndDate' => date('Y-m-d'), 'AccountNumber' => env('BCA_SOURCE_ACC_NO')]);
+
+        if(isset($resultTransfer['status']) && $resultTransfer['status'] !== true) {
+            return response()->json($resultTransfer);
+        }
+
+        $request->merge(['StartDate' => date('Y-m-d'), 'EndDate' => date('Y-m-d'), 'AccountNumber' => $resultTransfer['beneficiaryAccountNo']]);
         $responseStatement = $this->services->getBankStatement($request);
         $result = json_decode($responseStatement->getContent(), true);
         $berita1 = $request->input('Berita1');
@@ -44,6 +49,10 @@ class BCASnapController extends Controller
 
         foreach ($result['data'] as $data) {
             if (isset($data['remark']) && stripos($data['remark'], $berita) !== false) {
+                if(empty($resultTransfer['currency'])) {
+                    unset($resultTransfer['currency']);
+                }
+                $resultTransfer['referenceNo'] = $resultTransfer['partnerReferenceNo'];
                 $resultTransfer['type'] = $data['type'];
                 $resultTransfer['remark'] = $data['remark'];
                 $resultTransfer['transactionAmount'] = $data['transactionAmount'];
