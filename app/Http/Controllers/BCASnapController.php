@@ -38,7 +38,7 @@ class BCASnapController extends Controller
             return response()->json($resultTransfer);
         }
 
-        $request->merge(['StartDate' => date('Y-m-d'), 'EndDate' => date('Y-m-d'), 'AccountNumber' => $resultTransfer['beneficiaryAccountNo']]);
+        $request->merge(['StartDate' => date('Y-m-d'), 'EndDate' => date('Y-m-d'), 'AccountNumber' => env('BCA_SOURCE_ACC_NO')]);
         $responseStatement = $this->services->getBankStatement($request);
         $result = json_decode($responseStatement->getContent(), true);
         $berita1 = $request->input('Berita1');
