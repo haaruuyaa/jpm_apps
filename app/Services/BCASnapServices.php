@@ -253,21 +253,51 @@ class BCASnapServices implements BCASnapServicesInterfaces
         $token = $this->getCredentials($this->vaConfig->client,$this->vaConfig->port);
         $transactionId = $request->query('trxid');
         $amountValue = number_format($request->query('amount'),2,'.', '');
+        $inqReqId = 'INQ'.date('YmdHis').random_int(1000,9999);
+        $currency = $request->query('currency');
 
         $partnerServiceId = env('BCA_PARTNER_SERVICE_ID');
-        $paddedPartnerServiceId = str_pad($partnerServiceId, 8,'0',STR_PAD_LEFT);
-        $virtualAccNo = $paddedPartnerServiceId.$request->query('customer_number');
+        $paddedPartnerServiceId = str_pad($partnerServiceId, 8,' ',STR_PAD_LEFT);
+        $customerNo = $request->query('customer_number');
+        $customerName = $request->query('customer_name');
+        $customerEmail = $request->has('customer_email') ? $request->query('customer_email') : null;
+        $customerPhoneNo = $request->has('customer_phone_no') ? $request->query('customer_phone_no') : null;
+        $sourceAccNo = $request->has('source_account_number') ? $request->query('source_account_number') : null;
+        $sourceAccType = $request->has('source_account_type') ? $request->query('source_account_type') : null;
+
+        $virtualAccNo = $paddedPartnerServiceId.$customerNo;
 
         $body = [
-            'partnerReferenceNo' => $transactionId,
+            'partnerServiceId' => $paddedPartnerServiceId,
+            'customerNo' => $customerNo,
+            'referenceNo' => $transactionId,
             'virtualAccountNo' => $virtualAccNo,
+            'virtualAccountName' => $customerName,
             "paidAmount" => [
                 "value" => $amountValue,
-                "currency" => "IDR"
+                "currency" => $currency
             ],
             "trxDateTime" => date('c'),
-            'sourceAccountNo' => $request->query('source_account_number')
+            'inquiryRequestId' => $inqReqId,
+            'partnerReferenceNo' => $transactionId,
+            'sourceAccountNo' => env('BCA_SOURCE_VA_ACC_NO')
         ];
+
+        if (!empty($customerEmail)) {
+            $body['virtualAccountEmail'] = $customerEmail;
+        }
+
+        if (!empty($customerPhoneNo)) {
+            $body['virtualAccountPhone'] = $customerPhoneNo;
+        }
+
+        if (!empty($sourceAccNo)) {
+            $body['sourceAccountNo'] = $sourceAccNo;
+        }
+
+        if (!empty($sourceAccType)) {
+            $body['sourceAccountType'] = $sourceAccType;
+        }
 
         $prepareHeader = $this->getSnapHeader($method, $fullUrl, $token, $body, $this->vaConfig->secret);
 
