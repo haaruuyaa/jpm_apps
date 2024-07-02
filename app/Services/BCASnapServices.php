@@ -327,22 +327,23 @@ class BCASnapServices implements BCASnapServicesInterfaces
     public function transferVAInquiry(Request $request)
     {
         $method = 'POST';
-        $uri = '/openapi/v1.0/transfer-va/status';
+        $uri = '/openapi/v1.0/transfer-va/inquiry-intrabank';
         $fullUrl = $this->vaConfig->url.':'.$this->vaConfig->port.$uri;
         $token = $this->getCredentials($this->vaConfig->client,$this->vaConfig->port);
         $dataTransaction = $this->bca_transaction->findByTrxId($request->query('trxid'));
+        $inqReqId = 'VAINQ'.date('YmdHis').random_int(1000,9999);
 
         if(!empty($dataTransaction)) {
             $customerNo = substr($dataTransaction->beneficiary_account_no,8);
             $serviceId = substr($dataTransaction->beneficiary_account_no,0,8);
+            $virtualAccNo = $serviceId.$customerNo;
 
             $body = [
                 'partnerServiceId' => $serviceId,
+                'partnerReferenceNo' => $inqReqId,
                 'customerNo' => $customerNo,
-                'virtualAccountNo' => $dataTransaction->beneficiary_account_no,
-                'inquiryRequestId' => '202202111031031234500001136963',
-                'paymentRequestId' => '202202111031031234500001136963',
-                'additionalInfo' => '{}',
+                'virtualAccountNo' => $virtualAccNo,
+                'trxDateTime' => date('c')
             ];
 
             $prepareHeader = $this->getSnapHeader($method, $fullUrl, $token, $body, $this->vaConfig->secret);
