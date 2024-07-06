@@ -257,9 +257,9 @@ class BCASnapServices implements BCASnapServicesInterfaces
         $currency = $request->query('currency');
 
         $partnerServiceId = env('BCA_PARTNER_SERVICE_ID');
-        $paddedPartnerServiceId = str_pad($partnerServiceId, 8,' ',STR_PAD_LEFT);
+        $paddedPartnerServiceId = str_pad($partnerServiceId, 8,'0',STR_PAD_LEFT);
         $customerNo = $request->query('customer_number');
-        $customerName = $request->query('customer_name');
+        $customerName = $request->has('customer_email') ? $request->query('customer_name') : null;
         $customerEmail = $request->has('customer_email') ? $request->query('customer_email') : null;
         $customerPhoneNo = $request->has('customer_phone_no') ? $request->query('customer_phone_no') : null;
         $sourceAccNo = $request->has('source_account_number') ? $request->query('source_account_number') : null;
@@ -278,7 +278,7 @@ class BCASnapServices implements BCASnapServicesInterfaces
                 "currency" => $currency
             ],
             "trxDateTime" => date('c'),
-            'inquiryRequestId' => $inqReqId,
+//            'inquiryRequestId' => $inqReqId,
             'partnerReferenceNo' => $transactionId,
             'sourceAccountNo' => env('BCA_SOURCE_VA_ACC_NO')
         ];
@@ -318,7 +318,13 @@ class BCASnapServices implements BCASnapServicesInterfaces
 
         $result =  $this->postApi($method, $fullUrl, $headers, $body);
 
-        $this->bca_transaction->update($result);
+        Log::info('Headers : '.json_encode($headers));
+        Log::info('Body : '.json_encode($body));
+        Log::info('URL : '.$fullUrl);
+
+        if (isset($result['responseCode']) && $result['responseCode'] !== '4013301') {
+            $this->bca_transaction->update($result, $transactionId);
+        }
 
         return $result;
 
@@ -342,6 +348,116 @@ class BCASnapServices implements BCASnapServicesInterfaces
                 'partnerServiceId' => $serviceId,
                 'partnerReferenceNo' => $inqReqId,
                 'customerNo' => $customerNo,
+                'virtualAccountNo' => $virtualAccNo,
+                'trxDateTime' => date('c')
+            ];
+
+            $prepareHeader = $this->getSnapHeader($method, $fullUrl, $token, $body, $this->vaConfig->secret);
+
+            $additionalHeader = [
+                'CHANNEL-ID' => $this->vaConfig->channel,
+                'X-PARTNER-ID' => $this->vaConfig->partner
+            ];
+
+            $headers = array_merge($prepareHeader, $additionalHeader);
+
+            $results = $this->postApi($method, $fullUrl, $headers, $body);
+
+            $this->bca_transaction->update($results, $dataTransaction->trx_id);
+
+            Log::info('Headers : '.json_encode($prepareHeader));
+            Log::info('Body : '.json_encode($body));
+            Log::info('URL : '.$fullUrl);
+
+            return $results;
+        }
+
+        throw new ModelNotFoundException('Unable to find Record');
+
+    }
+
+    public function sendSharedBillerPaymentVA(Request $request)
+    {
+        $method = 'POST';
+        $uri = '/openapi/shared-biller/v1.0/transfer-va/payment-intrabank';
+        $fullUrl = $this->vaConfig->url.':'.$this->vaConfig->port.$uri;
+        $token = $this->getCredentials($this->vaConfig->client,$this->vaConfig->port);
+        $transactionId = $request->query('trxid');
+        $amountValue = number_format($request->query('amount'),2,'.', '');
+        $currency = $request->query('currency');
+
+        $partnerServiceId = env('BCA_PARTNER_SERVICE_ID');
+        $paddedPartnerServiceId = str_pad($partnerServiceId, 8,' ',STR_PAD_LEFT);
+        $customerNo = $request->query('customer_number');
+        $billNo = $request->has('bill_no') ? $request->query('bill_no') : null;
+
+        $virtualAccNo = $paddedPartnerServiceId.$customerNo;
+
+        $body = [
+            'partnerServiceId' => $paddedPartnerServiceId,
+            'virtualAccountNo' => $virtualAccNo,
+            "paidAmount" => [
+                "value" => $amountValue,
+                "currency" => $currency
+            ],
+            "trxDateTime" => date('c'),
+            'partnerReferenceNo' => $transactionId,
+            'sourceAccountNo' => env('BCA_SOURCE_VA_ACC_NO')
+        ];
+
+        if (!empty($billNo)) {
+            $body['billDetails'] = [
+                'billNo' => $billNo
+            ];
+        }
+
+        $prepareHeader = $this->getSnapHeader($method, $fullUrl, $token, $body, $this->vaConfig->secret);
+
+        $additionalHeader = [
+            'CHANNEL-ID' => $this->vaConfig->channel,
+            'X-PARTNER-ID' => $this->vaConfig->partner
+        ];
+
+        $headers = array_merge($prepareHeader, $additionalHeader);
+
+        $insertData = [
+            'type' => 'transfer-va',
+            'body' => $body,
+            'header' => $headers
+        ];
+
+        $this->bca_transaction->insert($insertData);
+
+        $result =  $this->postApi($method, $fullUrl, $headers, $body);
+
+        Log::info('Headers : '.json_encode($headers));
+        Log::info('Body : '.json_encode($body));
+        Log::info('URL : '.$fullUrl);
+
+        if (isset($result['responseCode']) && $result['responseCode'] !== '4013301') {
+            $this->bca_transaction->update($result, $transactionId);
+        }
+
+        return $result;
+
+    }
+
+    public function sendSharedBillerVAInquiry(Request $request)
+    {
+        $method = 'POST';
+        $uri = '/openapi/shared-biller/v1.0/transfer-va/inquiry-intrabank';
+        $fullUrl = $this->vaConfig->url.':'.$this->vaConfig->port.$uri;
+        $token = $this->getCredentials($this->vaConfig->client,$this->vaConfig->port);
+        $dataTransaction = $this->bca_transaction->findByTrxId($request->query('trxid'));
+        $inqReqId = 'VAINQ'.date('YmdHis').random_int(1000,9999);
+
+        if(!empty($dataTransaction)) {
+            $customerNo = substr($dataTransaction->beneficiary_account_no,8);
+            $serviceId = substr($dataTransaction->beneficiary_account_no,0,8);
+            $virtualAccNo = $serviceId.$customerNo;
+
+            $body = [
+                'partnerReferenceNo' => $inqReqId,
                 'virtualAccountNo' => $virtualAccNo,
                 'trxDateTime' => date('c')
             ];

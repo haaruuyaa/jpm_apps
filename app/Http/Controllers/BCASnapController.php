@@ -29,6 +29,11 @@ class BCASnapController extends Controller
         return $this->services->sendTransferToVA($request);
     }
 
+    public function paymentToVA(Request $request)
+    {
+        return $this->services->sendSharedBillerPaymentVA($request);
+    }
+
     public function transferToBca(Request $request)
     {
         // $resultTransfer['beneficiaryAccountNo']
@@ -71,5 +76,10 @@ class BCASnapController extends Controller
     public function transferInquiryVABCA(Request $request)
     {
         return $this->services->transferVAInquiry($request);
+    }
+
+    public function paymentInquiryVABCA(Request $request)
+    {
+        return $this->services->sendSharedBillerVAInquiry($request);
     }
 }

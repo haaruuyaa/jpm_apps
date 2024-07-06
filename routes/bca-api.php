@@ -18,5 +18,7 @@ Route::get('balance',[BCASnapController::class, 'balance']);
 Route::get('statement',[BCASnapController::class, 'bankStatement']);
 Route::post('transfer-ke-va',[BCASnapController::class, 'transferToVA']);
 Route::post('transfer-ke-bca',[BCASnapController::class, 'transferToBca']);
+Route::post('payment-ke-va',[BCASnapController::class, 'paymentToVA']);
 Route::get('cek-status',[BCASnapController::class, 'transferInquiryBCA']);
 Route::get('cek-status-va',[BCASnapController::class, 'transferInquiryVABCA']);
+Route::get('cek-status-payment-va',[BCASnapController::class, 'paymentInquiryVABCA']);
