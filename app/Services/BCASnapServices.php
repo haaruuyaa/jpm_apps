@@ -342,6 +342,8 @@ class BCASnapServices implements BCASnapServicesInterfaces
         if(!empty($dataTransaction)) {
             $customerNo = substr($dataTransaction->beneficiary_account_no,8);
             $serviceId = substr($dataTransaction->beneficiary_account_no,0,8);
+            $amountValue = number_format($dataTransaction->amount,2,'.', '');
+            $currency = $dataTransaction->currency;
             $virtualAccNo = $serviceId.$customerNo;
 
             $body = [
@@ -349,7 +351,11 @@ class BCASnapServices implements BCASnapServicesInterfaces
                 'partnerReferenceNo' => $inqReqId,
                 'customerNo' => $customerNo,
                 'virtualAccountNo' => $virtualAccNo,
-                'trxDateTime' => date('c')
+                'trxDateTime' => date('c'),
+                "amount" => [
+                    "value" => $amountValue,
+                    "currency" => $currency
+                ],
             ];
 
             $prepareHeader = $this->getSnapHeader($method, $fullUrl, $token, $body, $this->vaConfig->secret);
