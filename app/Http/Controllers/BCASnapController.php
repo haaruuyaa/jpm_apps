@@ -48,6 +48,14 @@ class BCASnapController extends Controller
             return response()->json($resultTransfer);
         }
 
+        $getAccountInquiry = $this->services->getAccountInquiry($request);
+
+        if(isset($getAccountInquiry['status']) && $getAccountInquiry['status'] !== true) {
+            return response()->json($getAccountInquiry);
+        }
+
+        $resultTransfer['beneficiaryAccountName'] = $getAccountInquiry['beneficiaryAccountName'];
+
         $request->merge(['StartDate' => date('Y-m-d'), 'EndDate' => date('Y-m-d'), 'AccountNumber' => env('BCA_SOURCE_ACC_NO')]);
         $responseStatement = $this->services->getBankStatement($request);
         $result = json_decode($responseStatement->getContent(), true);
