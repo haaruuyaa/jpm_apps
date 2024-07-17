@@ -39,16 +39,4 @@ class NextTransController extends Controller
     {
         return $this->services->checkKodeBank($request);
     }
-
-    public function bankList()
-    {
-        return $this->services->bankList();
-    }
-
-    public function countryList()
-    {
-        return $this->services->countryList();
-    }
-
-
 }

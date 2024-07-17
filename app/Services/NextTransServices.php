@@ -96,26 +96,12 @@ class NextTransServices
     public function checkRekening(Request $request)
     {
         try {
-            $trxId = $request->query('trxId');
+            $accountNo = $request->query('account_no');
+            $bankCode = $request->query('bic_code');
 
-            $data = $this->logic->getDisburseData($trxId);
+            $response = $this->accountInquiry($accountNo, $bankCode);
 
-            if($data !== null) {
-
-                $response = $this->statusDisburse($data->disburse_id);
-
-                $body = [
-                    "beneficiary_name" => $data->beneficiary_name,
-                    "beneficiary_account" => $data->beneficiary_account,
-                    "bank_code" => $data->bank_code
-                ];
-
-                $this->logic->updateStatusDisburse($trxId, $response);
-
-                return response()->json($body);
-            }
-
-            return response()->json(['status' => false ,'message' => "Unable to Find Data with ID {$trxId}"]);
+            return response()->json($response);
 
         } catch (\Exception $ex) {
             return response()->json(['status' => false ,'message' => "Exception :  {$ex->getMessage()}"]);
@@ -196,6 +182,28 @@ class NextTransServices
             $body = [
                 "information_type" => 'disburse',
                 "disburse_id" => $disburseId
+            ];
+
+            $prepareHeader = $this->getRequestHeader($method, $fullUrl, $token, $body, $this->nextTransConfig->secret);
+
+            return $this->postApi($method, $fullUrl, $prepareHeader, $body);
+        }
+
+        throw new HttpException(403, 'Unable to Proceed with request');
+    }
+
+    private function accountInquiry(string $accountNo, string $bankCode)
+    {
+        $method = 'POST';
+        $uri = '/account-inquiry';
+        $fullUrl = $this->nextTransConfig->url.':'.$this->nextTransConfig->port.$uri;
+        $token = $this->getCredentials($this->nextTransConfig->client,$this->nextTransConfig->port);
+
+        if($token) {
+
+            $body = [
+                "beneficiary_account_no" => $accountNo,
+                "bic_code" => $bankCode
             ];
 
             $prepareHeader = $this->getRequestHeader($method, $fullUrl, $token, $body, $this->nextTransConfig->secret);
