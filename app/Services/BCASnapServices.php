@@ -54,6 +54,32 @@ class BCASnapServices implements BCASnapServicesInterfaces
 
     }
 
+    public function getAccountInquiry(Request $request)
+    {
+        $method = 'POST';
+        $uri = '/openapi/v1.0/account-inquiry-internal';
+        $fullUrl = $this->bankConfig->url.':'.$this->bankConfig->port.$uri;
+        $token = $this->getCredentials($this->bankConfig->client,$this->bankConfig->port);
+        $transactionId = 'ACC'.date('YmdHis').random_int(1000,9999);
+
+        $body = [
+            'partnerReferenceNo' => $transactionId,
+            'beneficiaryAccountNo' => $request->query('account_no')
+        ];
+
+        $prepareHeader = $this->getSnapHeader($method, $fullUrl, $token, $body,$this->bankConfig->secret);
+
+        $additionalHeader = [
+            'CHANNEL-ID' => $this->bankConfig->channel,
+            'X-PARTNER-ID' => $this->bankConfig->partner
+        ];
+
+        $headers = array_merge($prepareHeader, $additionalHeader);
+
+        return $this->postApi($method, $fullUrl, $headers, $body);
+
+    }
+
     public function getBankStatement(Request $request)
     {
         $method = 'POST';

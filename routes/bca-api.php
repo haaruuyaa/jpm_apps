@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('balance',[BCASnapController::class, 'balance']);
+Route::get('account',[BCASnapController::class, 'accountInquiry']);
 Route::get('statement',[BCASnapController::class, 'bankStatement']);
 Route::post('transfer-ke-va',[BCASnapController::class, 'transferToVA']);
 Route::post('transfer-ke-bca',[BCASnapController::class, 'transferToBca']);

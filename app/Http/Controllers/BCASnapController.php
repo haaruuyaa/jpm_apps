@@ -19,6 +19,11 @@ class BCASnapController extends Controller
         return $this->services->getBankBalance($request);
     }
 
+    public function accountInquiry(Request $request)
+    {
+        return $this->services->getAccountInquiry($request);
+    }
+
     public function bankStatement(Request $request)
     {
         return $this->services->getBankStatement($request);
