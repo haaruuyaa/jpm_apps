@@ -63,30 +63,38 @@ class NextTransServices
             $amount = $request->query('Nominal');
             $remark = $request->query('Berita');
             $bankCode = $request->query('bank_bic');
-            $beneficiaryName = $request->query('namaTujuan');
 
-            $body = [
-                "bic_code" => $bankCode,
-                "amount" => $amount,
-                "beneficiary_name" => $beneficiaryName,
-                "beneficiary_account_no" => $beneficiaryAccountNo,
-                "description" => $remark,
-                'ref_no' => $trxId
-            ];
+            $accInq = $this->accountInquiry($beneficiaryAccountNo, $bankCode);
 
-            $this->logic->insertDisburse($this->trxId, $body);
+            if (isset($accInq['data']['beneficiary_name'])) {
+                $response['beneficiary_name'] = $accInq['data']['beneficiary_name'];
 
-            unset($body['ref_no']);
+                $body = [
+                    "bic_code" => $bankCode,
+                    "amount" => $amount,
+                    "beneficiary_name" => $accInq['data']['beneficiary_name'],
+                    "beneficiary_account_no" => $beneficiaryAccountNo,
+                    "description" => $remark,
+                    'ref_no' => $trxId
+                ];
 
-            $response = $this->createDisburse($body);
+                $this->logic->insertDisburse($this->trxId, $body);
 
-            if(!isset($response['error_code'])) {
-                $this->logic->updateDisburse($response);
+                unset($body['ref_no']);
+
+                $response = $this->createDisburse($body);
+
+                if(!isset($response['error_code'])) {
+                    $this->logic->updateDisburse($response);
+                }
+
+                $response['ref_no'] = $trxId;
+
+                return $response;
             }
 
-            $response['ref_no'] = $trxId;
+            return response()->json($accInq);
 
-            return $response;
         }catch (\Exception $ex) {
             return response()->json(['status' => false ,'message' => "Exception :  {$ex->getMessage()}"]);
         }
