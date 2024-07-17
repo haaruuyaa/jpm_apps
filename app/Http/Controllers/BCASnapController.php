@@ -63,7 +63,6 @@ class BCASnapController extends Controller
         $berita2 = $request->input('Berita2');
 
         $berita = $berita1 .' '. $berita2;
-        \Log::info('TF : '.json_encode($resultTransfer));
 
         foreach ($result['data'] as $data) {
             if (isset($data['remark']) && stripos($data['remark'], $berita) !== false) {
