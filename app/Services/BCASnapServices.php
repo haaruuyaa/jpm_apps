@@ -64,7 +64,7 @@ class BCASnapServices implements BCASnapServicesInterfaces
 
         $body = [
             'partnerReferenceNo' => $transactionId,
-            'beneficiaryAccountNo' => $request->query('account_no')
+            'beneficiaryAccountNo' => $request->query('Tujuan')
         ];
 
         $prepareHeader = $this->getSnapHeader($method, $fullUrl, $token, $body,$this->bankConfig->secret);
