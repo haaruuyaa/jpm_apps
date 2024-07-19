@@ -85,7 +85,7 @@ class NextTransServices
                 $response = $this->createDisburse($body);
 
                 if(!isset($response['error_code'])) {
-                    $this->logic->updateDisburse($response);
+                    $this->logic->updateDisburse($trxId, $response);
                 }
 
                 $response['ref_no'] = $trxId;

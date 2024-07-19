@@ -26,9 +26,9 @@ class NextTransLogic
         return NextTransModel::where('ref_no' , $id)->firstOrFail();
     }
 
-    public function updateDisburse(array $input): void
+    public function updateDisburse(string $id, array $input): void
     {
-        NextTransModel::where('trx_id', $input['idempotency_key_id'])->update([
+        NextTransModel::where('ref_no', $id)->update([
             'ref_id' => $input['ref_id'],
             'disburse_id' => $input['disburse_id'],
             'type' => $input['object'],
