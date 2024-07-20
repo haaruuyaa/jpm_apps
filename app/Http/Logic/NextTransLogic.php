@@ -3,22 +3,37 @@
 namespace App\Http\Logic;
 
 use App\Models\NextTransModel;
+use Illuminate\Database\QueryException;
 
 class NextTransLogic
 {
-    public function insertDisburse(string $id, array $input): void
+    public function insertDisburse(string $id, array $input): array
     {
-        $data = [
-            'bank_code' => $input['bic_code'],
-            'amount' => $input['amount'],
-            'beneficiary_name' => $input['beneficiary_name'],
-            'beneficiary_account' => $input['beneficiary_account_no'],
-            'description' => $input['description'],
-            'trx_id' => $id,
-            'ref_no' => $input['ref_no']
-        ];
+        try {
+            $data = [
+                'bank_code' => $input['bic_code'],
+                'amount' => $input['amount'],
+                'beneficiary_name' => $input['beneficiary_name'],
+                'beneficiary_account' => $input['beneficiary_account_no'],
+                'description' => $input['description'],
+                'trx_id' => $id,
+                'ref_no' => $input['ref_no']
+            ];
 
-        NextTransModel::create($data);
+            NextTransModel::create($data);
+
+            return ['status' => true];
+        } catch (QueryException $ex) {
+            $errorCode = $ex->errorInfo[1];
+
+            if ($errorCode === 1062) {
+                return ['status' => false, 'message' => 'Duplicate TrxId Detected, please change the TrxId'];
+            }
+
+            return ['status' => false, 'message' => $ex->getMessage()];
+
+        }
+
     }
 
     public function getDisburseData(string $id): ?NextTransModel

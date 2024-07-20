@@ -78,7 +78,15 @@ class NextTransServices
                     'ref_no' => $trxId
                 ];
 
-                $this->logic->insertDisburse($this->trxId, $body);
+                $insert = $this->logic->insertDisburse($this->trxId, $body);
+
+                if (!$insert['status']) {
+                    $body['error_message'] = $insert['message'];
+                    $body['trx_id'] = $trxId;
+                    $body['created_at'] = date('c');
+                    unset($body['ref_no']);
+                    return response()->json($body);
+                }
 
                 unset($body['ref_no']);
 

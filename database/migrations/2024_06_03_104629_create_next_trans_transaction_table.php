@@ -15,7 +15,7 @@ class CreateNextTransTransactionTable extends Migration
     {
         Schema::create('next_trans_transaction', function (Blueprint $table) {
             $table->id();
-            $table->string('ref_no',50);
+            $table->string('ref_no',50)->unique('ref_no_unique');
             $table->string('bank_code',10);
             $table->integer('amount');
             $table->string('beneficiary_name',50);
