@@ -168,6 +168,19 @@ class NextTransServices
         return response()->json(['status' => false, 'message' => 'unable to get list of bank']);
     }
 
+    public function callback(Request $request)
+    {
+        $input = $request->all();
+
+        Log::info('Incoming Callback : '.json_encode($input));
+
+        $updateCallback = $this->logic->updateCallbackDisburse($input);
+
+        Log::info('Callback Validation : '. json_encode($updateCallback));
+
+        return response('OK',200);
+    }
+
     private function createDisburse($body)
     {
         $method = 'POST';

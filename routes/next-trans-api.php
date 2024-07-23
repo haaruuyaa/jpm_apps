@@ -27,6 +27,7 @@ Route::post('transfer',[NextTransController::class, 'transfer']);
 Route::get('cek-status',[NextTransController::class, 'checkStatus']);
 Route::get('cek-status',[NextTransController::class, 'checkStatus']);
 Route::get('cek-kode-bank',[NextTransController::class, 'checkKodeBank']);
+Route::post('callback', [NextTransController::class, 'callback']);
 
 
 

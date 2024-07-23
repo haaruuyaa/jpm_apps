@@ -39,4 +39,9 @@ class NextTransController extends Controller
     {
         return $this->services->checkKodeBank($request);
     }
+
+    public function callback(Request $request)
+    {
+        return $this->services->callback($request);
+    }
 }

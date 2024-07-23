@@ -60,4 +60,29 @@ class NextTransLogic
             'reason' => $input['reason']
         ]);
     }
+
+    public function updateCallbackDisburse(array $input): array
+    {
+        $id = $input['disburse_id'];
+
+        try {
+            $dataTrans = NextTransModel::where('disburse_id', $id)->first();
+
+            if (!empty($dataTrans)) {
+                NextTransModel::where('disburse_id', $id)->update([
+                    'status' => $input['disburse_status'],
+                    'reason' => $input['reason']
+                ]);
+
+                return ['status' => true];
+            }
+
+            return ['status' => false, 'message' => 'unable to find transaction in database'];
+
+        } catch (QueryException $queryException) {
+            return ['status' => false, 'message' => $queryException->getMessage()];
+        }
+
+
+    }
 }
