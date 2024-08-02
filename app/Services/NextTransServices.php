@@ -65,6 +65,7 @@ class NextTransServices
             $bankCode = $request->query('bank_bic');
 
             $accInq = $this->accountInquiry($beneficiaryAccountNo, $bankCode);
+            $bank = $this->getBankByBicCode($bankCode) ?? '';
 
             if (isset($accInq['data']['beneficiary_name'])) {
                 $response['beneficiary_name'] = $accInq['data']['beneficiary_name'];
@@ -81,6 +82,23 @@ class NextTransServices
                 $insert = $this->logic->insertDisburse($this->trxId, $body);
 
                 if (!$insert['status']) {
+
+                    $data = $this->logic->getDisburseData($trxId);
+
+                    if ($data !== null) {
+                        $response = $this->statusDisburse($data->disburse_id);
+
+                        $this->logic->updateStatusDisburse($trxId, $response);
+
+                        $response['ref_no'] = $trxId;
+
+                        if (!empty($bank)) {
+                            $response['bank_name'] = $bank['bank_name'];
+                        }
+
+                        return response()->json($response);
+                    }
+
                     $body['error_message'] = $insert['message'];
                     $body['trx_id'] = $trxId;
                     $body['created_at'] = date('c');
@@ -97,6 +115,10 @@ class NextTransServices
                 }
 
                 $response['ref_no'] = $trxId;
+
+                if (!empty($bank)) {
+                    $response['bank_name'] = $bank['bank_name'];
+                }
 
                 return $response;
             }
@@ -133,11 +155,17 @@ class NextTransServices
 
             if($data !== null) {
 
+                $bank = $this->getBankByBicCode($data->bank_code) ?? '';
+
                 $response = $this->statusDisburse($data->disburse_id);
 
                 $this->logic->updateStatusDisburse($trxId, $response);
 
                 $response['ref_no'] = $trxId;
+
+                if (!empty($bank)) {
+                    $response['bank_name'] = $bank['bank_name'];
+                }
 
                 return response()->json($response);
             }
@@ -241,6 +269,20 @@ class NextTransServices
         }
 
         throw new HttpException(403, 'Unable to Proceed with request');
+    }
+
+    private function getBankByBicCode(string $code)
+    {
+        $bankList = $this->bankList();
+
+        if (isset($bankList['data'])) {
+            $banks = array_filter($bankList['data'], function ($item) use ($code) {
+                return $item['bank_bic'] === $code;
+            });
+            return array_pop($banks) ?? [];
+        }
+
+        return null;
     }
 
     private function bankList()
