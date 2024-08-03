@@ -64,7 +64,8 @@ class NextTransServices
                     "description" => $remark,
                     'ref_no' => $trxId,
                     'route' => 'get-balance',
-                    'error_message' => 'Unable to get current balance API'
+                    'error_message' => 'Unable to get current balance API',
+                    'disburse_status' => 'DISBURSE_REJECTED'
                 ];
 
                 return response()->json($body);
@@ -81,7 +82,8 @@ class NextTransServices
                     'ref_no' => $trxId,
                     'route' => 'create-disburse',
                     'error_message' => 'Balance is not sufficient to make transaction',
-                    'balance' => "Rp.{$balance['data']['current_balance']}"
+                    'balance' => "Rp.{$balance['data']['current_balance']}",
+                    'disburse_status' => 'DISBURSE_REJECTED'
                 ];
 
                 return response()->json($body);
@@ -161,7 +163,8 @@ class NextTransServices
                 "description" => $remark,
                 'ref_no' => $trxId,
                 'route' => 'account-inquiry',
-                'error_message' => 'Unable to get Account Inquiry information'
+                'error_message' => 'Unable to get Account Inquiry information',
+                'disburse_status' => 'DISBURSE_REJECTED'
             ]);
 
             return response()->json($accInq);
@@ -194,7 +197,21 @@ class NextTransServices
 
             $data = $this->logic->getDisburseData($trxId);
 
+            $balance = $this->getAccountBalance();
+
+            if (!isset($balance['data']['current_balance'])) {
+                $body = [
+                    'ref_no' => $trxId,
+                    'route' => 'get-balance',
+                    'error_message' => 'Unable to get current balance API'
+                ];
+
+                return response()->json($body);
+            }
+
             if($data !== null) {
+
+                $currentBalance = number_format($balance['data']['current_balance'], 2);
 
                 $bank = $this->getBankByBicCode($data->bank_code) ?? '';
 
@@ -203,6 +220,7 @@ class NextTransServices
                 $this->logic->updateStatusDisburse($trxId, $response);
 
                 $response['ref_no'] = $trxId;
+                $response['balance'] = "Rp.{$currentBalance}";
 
                 if (!empty($bank)) {
                     $response['bank_name'] = $bank['bank_name'];
