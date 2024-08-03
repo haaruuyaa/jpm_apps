@@ -31,24 +31,14 @@ class NextTransServices
     public function getBalance()
     {
         try {
-            $method = 'GET';
-            $uri = '/get-balance';
-            $fullUrl = $this->nextTransConfig->url.':'.$this->nextTransConfig->port.$uri;
-            $token = $this->getCredentials($this->nextTransConfig->client,$this->nextTransConfig->port);
-            $body = [];
+            $accountBalance = $this->getAccountBalance();
 
-            if($token) {
-                $header = $this->getRequestHeader($method, $fullUrl, $token, $body, $this->nextTransConfig->secret);
-
-                $response = $this->postApi($method, $fullUrl, $header, []);
-
-                if (isset($response['data'])) {
-                    return response()->json($response['data']);
-                }
-
-                return response()->json(['status' => false, 'message' => 'Unable to Get Balance']);
+            if (isset($accountBalance['data'])) {
+                return response()->json($accountBalance['data']);
             }
-            return response()->json(['status' => false, 'message' => 'Unable to Proceed with Request To get Balance']);
+
+            return response()->json($accountBalance);
+
         } catch (\Exception $ex) {
             return response()->json(['status' => false ,'message' => "Exception :  {$ex->getMessage()}"]);
         }
@@ -63,6 +53,40 @@ class NextTransServices
             $amount = $request->query('Nominal');
             $remark = $request->query('Berita');
             $bankCode = $request->query('bank_bic');
+
+            $balance = $this->getAccountBalance();
+
+            if (!isset($balance['data']['current_balance'])) {
+                $body = [
+                    "bic_code" => $bankCode,
+                    "amount" => $amount,
+                    "beneficiary_account_no" => $beneficiaryAccountNo,
+                    "description" => $remark,
+                    'ref_no' => $trxId,
+                    'route' => 'get-balance',
+                    'error_message' => 'Unable to get current balance API'
+                ];
+
+                return response()->json($body);
+            }
+
+            $currentBalance = number_format($balance['data']['current_balance'], 2);
+
+            if ((int)$balance['data']['current_balance'] < (int)$amount) {
+                $body = [
+                    "bic_code" => $bankCode,
+                    "amount" => $amount,
+                    "beneficiary_account_no" => $beneficiaryAccountNo,
+                    "description" => $remark,
+                    'ref_no' => $trxId,
+                    'route' => 'create-disburse',
+                    'error_message' => 'Balance is not sufficient to make transaction',
+                    'balance' => "Rp.{$balance['data']['current_balance']}"
+                ];
+
+                return response()->json($body);
+            }
+
 
             $accInq = $this->accountInquiry($beneficiaryAccountNo, $bankCode);
             $bank = $this->getBankByBicCode($bankCode) ?? '';
@@ -91,6 +115,9 @@ class NextTransServices
                         $this->logic->updateStatusDisburse($trxId, $response);
 
                         $response['ref_no'] = $trxId;
+                        $response['balance'] = "Rp.{$currentBalance}";
+                        $response['route'] = 'status-disburse';
+                        unset($response['object']);
 
                         if (!empty($bank)) {
                             $response['bank_name'] = $bank['bank_name'];
@@ -102,6 +129,7 @@ class NextTransServices
                     $body['error_message'] = $insert['message'];
                     $body['trx_id'] = $trxId;
                     $body['created_at'] = date('c');
+                    $body['balance'] = "Rp.{$currentBalance}";
                     unset($body['ref_no']);
                     return response()->json($body);
                 }
@@ -115,6 +143,9 @@ class NextTransServices
                 }
 
                 $response['ref_no'] = $trxId;
+                $response['balance'] = "Rp.{$currentBalance}";
+                $response['route'] = 'create-disburse';
+                unset($response['object']);
 
                 if (!empty($bank)) {
                     $response['bank_name'] = $bank['bank_name'];
@@ -122,6 +153,16 @@ class NextTransServices
 
                 return $response;
             }
+
+            $accInq['data'] = array_merge($accInq['data'],[
+                "bic_code" => $bankCode,
+                "amount" => $amount,
+                "beneficiary_account_no" => $beneficiaryAccountNo,
+                "description" => $remark,
+                'ref_no' => $trxId,
+                'route' => 'account-inquiry',
+                'error_message' => 'Unable to get Account Inquiry information'
+            ]);
 
             return response()->json($accInq);
 
@@ -207,6 +248,23 @@ class NextTransServices
         Log::info('Callback Validation : '. json_encode($updateCallback));
 
         return response('OK',200);
+    }
+
+    private function getAccountBalance()
+    {
+        $method = 'GET';
+        $uri = '/get-balance';
+        $fullUrl = $this->nextTransConfig->url.':'.$this->nextTransConfig->port.$uri;
+        $token = $this->getCredentials($this->nextTransConfig->client,$this->nextTransConfig->port);
+        $body = [];
+
+        if($token) {
+            $header = $this->getRequestHeader($method, $fullUrl, $token, $body, $this->nextTransConfig->secret);
+
+            return $this->postApi($method, $fullUrl, $header, []);
+        }
+
+        return response()->json(['status' => false, 'message' => 'Unable to Get Balance']);
     }
 
     private function createDisburse($body)
@@ -335,20 +393,22 @@ class NextTransServices
 
     private function postApi($method, $url, $headers, $body)
     {
+        $randomString = Str::random(5);
         try {
             $client = new Client();
-            Log::info('Request Header  : '.json_encode($headers));
-            Log::info('Request Body  : '.json_encode($body));
+            Log::info("{$randomString} URL : ". $url);
+            Log::info("{$randomString} Request Header  : ".json_encode($headers));
+            Log::info("{$randomString} Request Body  : ".json_encode($body));
             $req = new GuzzleRequest($method,$url,$headers,json_encode($body));
             $results = $client->send($req);
             $response = $results->getBody()->getContents();
-            Log::info('Response : '.$response);
+            Log::info("{$randomString} Response : ".$response);
 
             return json_decode($response, true);
 
         } catch (RequestException $ex) {
             $response = $ex->getResponse()->getBody()->getContents();
-            Log::error('Response : '.$response);
+            Log::error("{$randomString} Response : ".$response);
             return json_decode($response, true);
         }
     }
