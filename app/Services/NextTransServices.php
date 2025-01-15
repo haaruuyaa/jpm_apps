@@ -40,7 +40,7 @@ class NextTransServices
             return response()->json($accountBalance);
 
         } catch (\Exception $ex) {
-            return response()->json(['status' => false ,'message' => "Exception :  {$ex->getMessage()}"]);
+            return response()->json(['method' => 'getBalance','status' => false ,'message' => "Exception :  {$ex->getMessage()} | {$ex->getFile()} | {$ex->getLine()}"]);
         }
 
     }
@@ -170,7 +170,7 @@ class NextTransServices
             return response()->json($accInq);
 
         }catch (\Exception $ex) {
-            return response()->json(['status' => false ,'message' => "Exception :  {$ex->getMessage()}"]);
+            return response()->json(['method' => 'transfer','status' => false ,'message' => "Exception :  {$ex->getMessage()} | {$ex->getFile()} | {$ex->getLine()}"]);
         }
 
     }
@@ -186,7 +186,7 @@ class NextTransServices
             return response()->json($response);
 
         } catch (\Exception $ex) {
-            return response()->json(['status' => false ,'message' => "Exception :  {$ex->getMessage()}"]);
+            return response()->json(['method' => 'checkRekening','status' => false ,'message' => "Exception :  {$ex->getMessage()} | {$ex->getFile()} | {$ex->getLine()}"]);
         }
     }
 
@@ -232,7 +232,7 @@ class NextTransServices
             return response()->json(['status' => false ,'message' => "Unable to Find Data with ID {$trxId}"]);
 
         } catch (\Exception $ex) {
-            return response()->json(['status' => false ,'message' => "Exception :  {$ex->getMessage()}"]);
+            return response()->json(['method' => 'checkStatus','status' => false ,'message' => "Exception :  {$ex->getMessage()} | {$ex->getFile()} | {$ex->getLine()}"]);
         }
     }
 
