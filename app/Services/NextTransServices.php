@@ -51,7 +51,7 @@ class NextTransServices
             $trxId = $request->query('trxId');
             $beneficiaryAccountNo = $request->query('Tujuan');
             $amount = $request->query('Nominal');
-            $remark = $request->query('Berita');
+            $remark = $this->cleanString($request->query('Berita'));
             $bankCode = $request->query('bank_bic');
 
             $balance = $this->getAccountBalance();
@@ -94,12 +94,13 @@ class NextTransServices
             $bank = $this->getBankByBicCode($bankCode) ?? '';
 
             if (isset($accInq['data']['beneficiary_name'])) {
-                $response['beneficiary_name'] = $accInq['data']['beneficiary_name'];
+                $beneficiaryName = $this->cleanString($accInq['data']['beneficiary_name']);
+                $response['beneficiary_name'] = $beneficiaryName;
 
                 $body = [
                     "bic_code" => $bankCode,
                     "amount" => $amount,
-                    "beneficiary_name" => $accInq['data']['beneficiary_name'],
+                    "beneficiary_name" => $beneficiaryName,
                     "beneficiary_account_no" => $beneficiaryAccountNo,
                     "description" => $remark,
                     'ref_no' => $trxId
@@ -170,7 +171,7 @@ class NextTransServices
             return response()->json($accInq);
 
         }catch (\Exception $ex) {
-            return response()->json(['method' => 'transfer','status' => false ,'message' => "Exception :  {$ex->getMessage()} | {$ex->getFile()} | {$ex->getLine()}"]);
+            return response()->json(['trxId' => $request->query('trxId') ?? '','method' => 'transfer','status' => false ,'message' => "Exception :  {$ex->getMessage()} | {$ex->getFile()} | {$ex->getLine()}"]);
         }
 
     }
@@ -215,7 +216,7 @@ class NextTransServices
 
                 $bank = $this->getBankByBicCode($data->bank_code) ?? '';
 
-                $response = $this->statusDisburse($data->disburse_id);
+                $response = $this->statusDisburse($data->trx_id);
 
                 $this->logic->updateStatusDisburse($trxId, $response);
 
@@ -232,7 +233,7 @@ class NextTransServices
             return response()->json(['status' => false ,'message' => "Unable to Find Data with ID {$trxId}"]);
 
         } catch (\Exception $ex) {
-            return response()->json(['method' => 'checkStatus','status' => false ,'message' => "Exception :  {$ex->getMessage()} | {$ex->getFile()} | {$ex->getLine()}"]);
+            return response()->json(['trxId' => $request->query('trxId') ?? '','method' => 'checkStatus','status' => false ,'message' => "Exception :  {$ex->getMessage()} | {$ex->getFile()} | {$ex->getLine()}"]);
         }
     }
 
@@ -523,5 +524,10 @@ class NextTransServices
         }
 
         return $path;
+    }
+
+    private function cleanString(string $string)
+    {
+        return preg_replace("/[^a-zA-Z0-9\s]/", "", $string);
     }
 }
