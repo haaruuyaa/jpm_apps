@@ -23,3 +23,4 @@ Route::post('payment-ke-va',[BCASnapController::class, 'paymentToVA']);
 Route::get('cek-status',[BCASnapController::class, 'transferInquiryBCA']);
 Route::get('cek-status-va',[BCASnapController::class, 'transferInquiryVABCA']);
 Route::get('cek-status-payment-va',[BCASnapController::class, 'paymentInquiryVABCA']);
+Route::get('bill-presentment',[BCASnapController::class, 'transferInquiryVABCAOutbound']);
