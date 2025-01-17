@@ -87,11 +87,16 @@ class BCASnapController extends Controller
 
     public function transferInquiryVABCA(Request $request)
     {
-        return $this->services->transferVAInquiry($request);
+        return $this->services->transferVAInquiryInbound($request);
     }
 
     public function paymentInquiryVABCA(Request $request)
     {
         return $this->services->sendSharedBillerVAInquiry($request);
+    }
+
+    public function transferInquiryVABCAOutbound(Request $request)
+    {
+        return $this->services->transferVAInquiryOutbound($request);
     }
 }

@@ -8,7 +8,7 @@ interface BCASnapServicesInterfaces
 {
     public function getBankBalance(Request $request);
     public function getBankStatement(Request $request);
-    public function sendTransferToVA(Request $request);
+    public function sendTransferToVAInbound(Request $request);
     public function sendTransferToBCA(Request $request);
     public function transferInquiryBCA(Request $request);
 }

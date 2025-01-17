@@ -76,6 +76,9 @@ class BCASnapServices implements BCASnapServicesInterfaces
 
         $headers = array_merge($prepareHeader, $additionalHeader);
 
+        Log::info("URL : {$fullUrl}");
+        Log::info("Header : ". json_encode($headers));
+        Log::info("Body : ". json_encode($body));
         return $this->postApi($method, $fullUrl, $headers, $body);
 
     }
@@ -271,7 +274,7 @@ class BCASnapServices implements BCASnapServicesInterfaces
 
     }
 
-    public function sendTransferToVA(Request $request)
+    public function sendTransferToVAInbound(Request $request)
     {
         $method = 'POST';
         $uri = '/openapi/v1.0/transfer-va/payment-intrabank';
@@ -356,7 +359,7 @@ class BCASnapServices implements BCASnapServicesInterfaces
 
     }
 
-    public function transferVAInquiry(Request $request)
+    public function transferVAInquiryInbound(Request $request)
     {
         $method = 'POST';
         $uri = '/openapi/v1.0/transfer-va/inquiry-intrabank';
@@ -405,6 +408,57 @@ class BCASnapServices implements BCASnapServicesInterfaces
         }
 
         throw new ModelNotFoundException('Unable to find Record');
+
+    }
+
+    public function transferVAInquiryOutbound(Request $request)
+    {
+        $method = 'POST';
+        $uri = '/openapi/v1.0/transfer-va/inquiry';
+        $fullUrl = $this->vaConfig->url.':'.$this->vaConfig->port.$uri;
+        $token = $this->getCredentials($this->vaConfig->client,$this->vaConfig->port);
+        $inqReqId = 'VAINQOUT'.date('YmdHis').random_int(1000,9999);
+
+
+        $customerNo = $request->input('customer_no');
+        $partnerServiceId = env('BCA_PARTNER_SERVICE_ID');
+        $paddedPartnerServiceId = str_pad($partnerServiceId, 8,' ',STR_PAD_LEFT);
+        $amountValue = number_format($request->input('amount'),2,'.', '');
+        $currency = $request->input('currency');
+        $virtualAccNo =$paddedPartnerServiceId.$customerNo;
+        $channelCode = 0000;
+        $languageId = 'ID';
+
+        $body = [
+            'partnerServiceId' => $paddedPartnerServiceId,
+            'customerNo' => $customerNo,
+            'virtualAccountNo' => $virtualAccNo,
+            'trxDateInit' => date('c'),
+            'channelCode' => $channelCode,
+            'language' => $languageId,
+            "amount" => [
+                "value" => $amountValue,
+                "currency" => $currency
+            ],
+            'inquiryRequestId' => $inqReqId
+        ];
+
+        $prepareHeader = $this->getSnapHeader($method, $fullUrl, $token, $body, $this->vaConfig->secret);
+
+        $additionalHeader = [
+            'CHANNEL-ID' => $this->vaConfig->channel,
+            'X-PARTNER-ID' => $this->vaConfig->partner
+        ];
+
+        $headers = array_merge($prepareHeader, $additionalHeader);
+
+        $results = $this->postApi($method, $fullUrl, $headers, $body);
+
+        Log::info('Headers : '.json_encode($headers));
+        Log::info('Body : '.json_encode($body));
+        Log::info('URL : '.$fullUrl);
+
+        return $results;
 
     }
 
